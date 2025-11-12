@@ -1,0 +1,48 @@
+{
+  "supervisors": [
+    {
+      "username": "admin",
+      "password": "admin"
+    }
+  ],
+  "workers": [
+    {
+      "username": "alice",
+      "password": "alice123",
+      "workloadScore": 0,
+      "blackouts": []
+    },
+    {
+      "username": "bob",
+      "password": "bob123",
+      "workloadScore": 0,
+      "blackouts": []
+    },
+    {
+      "username": "charlie",
+      "password": "charlie123",
+      "workloadScore": 0,
+      "blackouts": []
+    }
+  ],
+  "tasks": [
+    {
+      "name": "Clean Corridor",
+      "type": "DAILY",
+      "difficulty": 2
+    },
+    {
+      "name": "Wash Dishes",
+      "type": "DAILY",
+      "difficulty": 3
+    },
+    {
+      "name": "Refill Water",
+      "type": "WEEKLY",
+      "scheduledDay": "WEDNESDAY",
+      "difficulty": 1
+    }
+  ],
+  "blackout_requests": [],
+  "assignments": []
+}
