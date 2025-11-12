@@ -80,38 +80,60 @@ public class SupervisorDashboard extends Frame {
 
     // Workers panel (add/remove)
     Panel buildWorkersPanel() {
-        Panel p = new Panel(new BorderLayout());
-        Panel top = new Panel(new FlowLayout());
-        TextField userf = new TextField(12);
-        TextField passf = new TextField(12);
-        Button add = new Button("Add Worker");
-        Button remove = new Button("Remove Selected");
-        top.add(new Label("Username:")); top.add(userf);
-        top.add(new Label("Password:")); top.add(passf);
-        top.add(add); top.add(remove);
-        p.add(top, BorderLayout.NORTH);
+    Panel p = new Panel(new BorderLayout());
+    Panel top = new Panel(new FlowLayout());
+    TextField userf = new TextField(12);
+    TextField passf = new TextField(12);
+    Button add = new Button("Add Worker");
+    Button remove = new Button("Remove Selected");
+    top.add(new Label("Username:"));
+    top.add(userf);
+    top.add(new Label("Password:"));
+    top.add(passf);
+    top.add(add);
+    top.add(remove);
+    p.add(top, BorderLayout.NORTH);
 
-        java.awt.List list = new java.awt.List();
-        p.add(list, BorderLayout.CENTER);
-        add.addActionListener(e -> {
-            try {
-                String u = userf.getText().trim(); String pw = passf.getText().trim();
-                if (!u.isEmpty()) { dm.addWorker(new Worker(u,pw)); userf.setText(""); passf.setText(""); refreshWorkers(list); }
-            } catch (Exception ex) { ex.printStackTrace(); }
-        });
-        remove.addActionListener(e -> {
-            try {
-                String sel = list.getSelectedItem();
-                if (sel != null) {
-                    String username = sel.split(" ")[0];
-                    dm.removeWorker(username);
-                    refreshWorkers(list);
-                }
-            } catch (Exception ex) { ex.printStackTrace(); }
-        });
-        refreshWorkers(list);
-        return p;
-    }
+    java.awt.List list = new java.awt.List();
+    p.add(list, BorderLayout.CENTER);
+
+    Runnable refresh = () -> {
+        list.removeAll();
+        for (Worker w : dm.getWorkers())
+            list.add(w.username + " (workload=" + w.workloadScore + ")");
+    };
+    refresh.run();
+
+    add.addActionListener(e -> {
+        try {
+            String u = userf.getText().trim();
+            String pw = passf.getText().trim();
+            if (u.isEmpty() || pw.isEmpty()) return;
+            dm.addWorker(new Worker(u, pw));
+            userf.setText("");
+            passf.setText("");
+            refresh.run();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    });
+
+    remove.addActionListener(e -> {
+        try {
+            String sel = list.getSelectedItem();
+            if (sel == null) return;
+            int idx = sel.indexOf(" (");
+            String name = (idx > 0) ? sel.substring(0, idx).trim() : sel.trim();
+            dm.removeWorker(name);
+            refresh.run();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    });
+
+    return p;
+}
+
 
     void refreshWorkers(java.awt.List list) {
         list.removeAll();
@@ -120,46 +142,74 @@ public class SupervisorDashboard extends Frame {
 
     // Tasks panel (add/remove)
     Panel buildTasksPanel() {
-        Panel p = new Panel(new BorderLayout());
-        Panel form = new Panel(new GridLayout(0,1));
-        TextField tname = new TextField(20);
-        Choice type = new Choice(); type.add("DAILY"); type.add("WEEKLY"); type.add("ONE_TIME");
-        Choice diff = new Choice(); for (int i=1;i<=5;i++) diff.add(""+i);
-        TextField sched = new TextField(10);
-        Button add = new Button("Add Task"); Button remove = new Button("Remove Selected");
-        form.add(new Label("Task name:")); form.add(tname);
-        form.add(new Label("Type:")); form.add(type);
-        form.add(new Label("Difficulty:")); form.add(diff);
-        form.add(new Label("ScheduledDay (for weekly):")); form.add(sched);
-        form.add(add); form.add(remove);
-        p.add(form, BorderLayout.NORTH);
+    Panel p = new Panel(new BorderLayout());
 
-        java.awt.List list = new java.awt.List();
-        p.add(list, BorderLayout.CENTER);
-        add.addActionListener(e -> {
-            try {
-                String n = tname.getText().trim();
-                if (n.isEmpty()) return;
-                Task tt = new Task(n, TaskType.valueOf(type.getSelectedItem()), Integer.parseInt(diff.getSelectedItem()));
-                if (!sched.getText().trim().isEmpty()) tt.scheduledDay = sched.getText().trim().toUpperCase();
-                dm.addTask(tt);
-                tname.setText(""); sched.setText("");
-                refreshTasks(list);
-            } catch (Exception ex) { ex.printStackTrace(); }
-        });
-        remove.addActionListener(e -> {
-            try {
-                String sel = list.getSelectedItem();
-                if (sel != null) {
-                    String taskName = sel.split(" ")[0];
-                    dm.removeTask(taskName);
-                    refreshTasks(list);
-                }
-            } catch (Exception ex) { ex.printStackTrace(); }
-        });
-        refreshTasks(list);
-        return p;
-    }
+    Panel form = new Panel(new GridLayout(0, 1));
+    TextField tname = new TextField(20);
+    Choice type = new Choice();
+    type.add("DAILY");
+    type.add("WEEKLY");
+    type.add("ONE_TIME");
+    Choice diff = new Choice();
+    for (int i = 1; i <= 5; i++) diff.add("" + i);
+    TextField sched = new TextField(10);
+    Button add = new Button("Add Task");
+    Button remove = new Button("Remove Selected");
+
+    form.add(new Label("Task name:"));
+    form.add(tname);
+    form.add(new Label("Type:"));
+    form.add(type);
+    form.add(new Label("Difficulty:"));
+    form.add(diff);
+    form.add(new Label("ScheduledDay (for weekly):"));
+    form.add(sched);
+    form.add(add);
+    form.add(remove);
+    p.add(form, BorderLayout.NORTH);
+
+    java.awt.List list = new java.awt.List();
+    p.add(list, BorderLayout.CENTER);
+
+    Runnable refresh = () -> {
+        list.removeAll();
+        for (Task t : dm.getTasks())
+            list.add(t.name + " (d=" + t.difficulty + ")");
+    };
+    refresh.run();
+
+    add.addActionListener(e -> {
+        try {
+            String n = tname.getText().trim();
+            if (n.isEmpty()) return;
+            int d = Integer.parseInt(diff.getSelectedItem());
+            Task t = new Task(n, TaskType.valueOf(type.getSelectedItem()), d);
+            if (!sched.getText().trim().isEmpty())
+                t.scheduledDay = sched.getText().trim().toUpperCase();
+            dm.addTask(t);
+            tname.setText("");
+            sched.setText("");
+            refresh.run();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    });
+
+    remove.addActionListener(e -> {
+        try {
+            String sel = list.getSelectedItem();
+            if (sel == null) return;
+            int idx = sel.indexOf(" (d=");
+            String name = (idx > 0) ? sel.substring(0, idx).trim() : sel.trim();
+            dm.removeTask(name);
+            refresh.run();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    });
+
+    return p;
+}
 
     void refreshTasks(java.awt.List list) {
         list.removeAll();
